@@ -24,30 +24,46 @@ const Dealer = () => {
   let reviews_url = root_url+`djangoapp/reviews/dealer/${id}`;
   let post_review = root_url+`postreview/${id}`;
   
-  const get_dealer = async ()=>{
-    const res = await fetch(dealer_url, {
-      method: "GET"
-    });
-    const retobj = await res.json();
-    
-    if(retobj.status === 200) {
-      let dealerobjs = Array.from(retobj.dealer)
-      setDealer(dealerobjs[0])
-    }
-  }
+	const get_dealer = async () => {
+	  console.log("Dealer.jsx: Fetching dealer from:", dealer_url);
+	  try {
+		const res = await fetch(dealer_url, { method: "GET" });
+		const retobj = await res.json();
+		console.log("Dealer.jsx: Dealer response:", retobj);
+
+		if (retobj.status === 200) {
+		  // Inspect what retobj.dealer looks like
+		  if (Array.isArray(retobj.dealer)) {
+			setDealer(retobj.dealer[0]);
+		  } else {
+			setDealer(retobj.dealer); // fallback
+		  }
+		}
+	  } catch (err) {
+		console.error("Error fetching dealer:", err);
+	  }
+	};
 
   const get_reviews = async ()=>{
-    const res = await fetch(reviews_url, {
-      method: "GET"
-    });
-    const retobj = await res.json();
-    
-    if(retobj.status === 200) {
-      if(retobj.reviews.length > 0){
-        setReviews(retobj.reviews)
-      } else {
-        setUnreviewed(true);
-      }
+	console.log("Dealer jsx: get_reviews: Fetching from:", reviews_url); // ✅ Confirm actual URL
+	try {
+		const res = await fetch(reviews_url, {
+		  method: "GET"
+		});
+		const retobj = await res.json();
+		console.log("Dealer jsx: get_reviews: Review response:", retobj); // ✅ See what backend returned
+		
+		if(retobj.status === 200) {
+		  if(retobj.reviews.length > 0){
+			setReviews(retobj.reviews)
+		  } else {
+			setUnreviewed(true);
+		  }
+		} else {
+		  console.warn("Dealer jsx: get_reviews: Non-200 status received:", retobj.status);
+		}
+	} catch (error) {
+      console.error("Dealer jsx: get_reviews: Error fetching reviews:", error);
     }
   }
 
@@ -71,8 +87,17 @@ return(
   <div style={{margin:"20px"}}>
       <Header/>
       <div style={{marginTop:"10px"}}>
-      <h1 style={{color:"grey"}}>{dealer.full_name}{postReview}</h1>
-      <h4  style={{color:"grey"}}>{dealer['city']},{dealer['address']}, Zip - {dealer['zip']}, {dealer['state']} </h4>
+	  <h1 style={{color:"grey"}}>
+        {dealer && dealer.full_name ? dealer.full_name : "Loading dealer..."}
+        {postReview}
+  	  </h1>
+      <h4 style={{color:"grey"}}>
+		  {dealer && dealer.city ? (
+			`${dealer.city}, ${dealer.address}, Zip - ${dealer.zip}, ${dealer.state}`
+		  ) : (
+			"Loading address..."
+		  )}
+	  </h4>
       </div>
       <div class="reviews_panel">
       {reviews.length === 0 && unreviewed === false ? (
