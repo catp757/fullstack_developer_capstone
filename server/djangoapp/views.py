@@ -13,9 +13,7 @@ from .restapis import get_request, analyze_review_sentiments, post_review
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-# Create a `login_request` view to handle sign in request
-
-
+# Create a `login_user` view to handle sign in request
 @csrf_exempt
 def login_user(request):
     # Get username and password from request.POST dictionary
@@ -32,16 +30,12 @@ def login_user(request):
     return JsonResponse(data)
 
 # Create a `logout_user` view to handle sign out request
-
-
 def logout_user(request):
     logout(request)  # Terminate user session
     data = {"userName": ""}  # Return empty username
     return JsonResponse(data)
 
 # Create a `register_user` view to handle sign up request
-
-
 @csrf_exempt
 def register_user(request):
 
@@ -78,7 +72,6 @@ def register_user(request):
         data = {"userName": username, "error": "Already Registered"}
         return JsonResponse(data)
 
-
 def get_cars(request):
     count = CarMake.objects.filter().count()
     print(count)
@@ -93,8 +86,6 @@ def get_cars(request):
 
 # Update the `get_dealerships` render list of dealerships all by default,
 # particular state if state is passed
-
-
 def get_dealerships(request, state="All"):
     if (state == "All"):
         endpoint = "/fetchDealers"
@@ -104,34 +95,40 @@ def get_dealerships(request, state="All"):
     return JsonResponse({"status": 200, "dealers": dealerships})
 
 # Create a `get_dealer_reviews` view to render the reviews of a dealer
-
-
 def get_dealer_reviews(request, dealer_id):
-    # if dealer id has been provided
-    if (dealer_id):
-        logger.error("GETTING DEALER REVIEWS - /fetchReviews/dealer/")
-        endpoint = "/fetchReviews/dealer/" + str(dealer_id)
-        reviews = get_request(endpoint)
-        if not reviews:
-            logger.warning(f"No reviews found for dealer ID {dealer_id}")
-            return JsonResponse({"status": 200, "reviews": []})
-        try:
-            for review_detail in reviews:
-                response = analyze_review_sentiments(review_detail['review'])
-                print(response)
-                review_detail['sentiment'] = response['sentiment']
-            return JsonResponse({"status": 200, "reviews": reviews})
+    if not dealer_id:
+        return JsonResponse(
+            {"status": 400, "message": "Bad Request: Missing dealer ID"},
+            status=400
+        )
 
-        except Exception as e:
-            logger.error(f"Sentiment analysis failed: {e}")
-            review_detail['sentiment'] = "neutral"
-            return JsonResponse({"status": 500, "reviews": reviews})
-    else:
-        return JsonResponse({"status": 400, "message": "Bad Request"})
+    logger.info("GETTING DEALER REVIEWS - /fetchReviews/dealer/")
+    endpoint = f"/fetchReviews/dealer/{dealer_id}"
+    reviews = get_request(endpoint)
+
+    if not reviews:
+        logger.warning(f"No reviews found for dealer ID {dealer_id}")
+        return JsonResponse({"status": 200, "reviews": []}, status=200)
+
+    try:
+        for review_detail in reviews:
+            try:
+                response = analyze_review_sentiments(review_detail['review'])
+                review_detail['sentiment'] = response.get('sentiment', 'neutral')
+            except Exception as e:
+                logger.warning(f"Sentiment analysis failed for review: {e}")
+                review_detail['sentiment'] = "neutral"
+
+        return JsonResponse({"status": 200, "reviews": reviews}, status=200)
+
+    except Exception as e:
+        logger.error(f"Unexpected error while processing reviews: {e}")
+        return JsonResponse(
+            {"status": 500, "reviews": [], "error": str(e)},
+            status=500
+        )
 
 # Create a `get_dealer_details` view to render the dealer details
-
-
 def get_dealer_details(request, dealer_id):
     if (dealer_id):
         logger.error("GETTING DEALER DETAILS - /fetchDealer/")
@@ -142,7 +139,6 @@ def get_dealer_details(request, dealer_id):
         return JsonResponse({"status": 400, "message": "Bad Request"})
 
 # Create a `add_review` view to submit a review
-
 @csrf_exempt
 def add_review(request):
     if not request.user.is_anonymous:
