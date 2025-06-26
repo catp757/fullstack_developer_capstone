@@ -96,37 +96,32 @@ def get_dealerships(request, state="All"):
 
 # Create a `get_dealer_reviews` view to render the reviews of a dealer
 def get_dealer_reviews(request, dealer_id):
-    if not dealer_id:
-        return JsonResponse(
-            {"status": 400, "message": "Bad Request: Missing dealer ID"},
-            status=400
-        )
+    if dealer_id:
+        logger.info(f"GETTING DEALER REVIEWS - /fetchReviews/dealer/{dealer_id}")
+        endpoint = f"/fetchReviews/dealer/{dealer_id}"
+        reviews = get_request(endpoint)
 
-    logger.info("GETTING DEALER REVIEWS - /fetchReviews/dealer/")
-    endpoint = f"/fetchReviews/dealer/{dealer_id}"
-    reviews = get_request(endpoint)
+        if not reviews:
+            logger.warning(f"No reviews found for dealer ID {dealer_id}")
+            return JsonResponse({"status": 200, "reviews": []})
 
-    if not reviews:
-        logger.warning(f"No reviews found for dealer ID {dealer_id}")
-        return JsonResponse({"status": 200, "reviews": []}, status=200)
-
-    try:
+        processed_reviews = []
         for review_detail in reviews:
             try:
-                response = analyze_review_sentiments(review_detail['review'])
-                review_detail['sentiment'] = response.get('sentiment', 'neutral')
+                sentiment_response = analyze_review_sentiments(review_detail.get('review', ''))
+                sentiment = sentiment_response.get('sentiment', 'neutral')
+                review_detail['sentiment'] = sentiment
             except Exception as e:
-                logger.warning(f"Sentiment analysis failed for review: {e}")
+                logger.error(f"Sentiment analysis failed for review: {review_detail}. Error: {e}")
                 review_detail['sentiment'] = "neutral"
+            
+            processed_reviews.append(review_detail)
 
-        return JsonResponse({"status": 200, "reviews": reviews}, status=200)
+        return JsonResponse({"status": 200, "reviews": processed_reviews})
 
-    except Exception as e:
-        logger.error(f"Unexpected error while processing reviews: {e}")
-        return JsonResponse(
-            {"status": 500, "reviews": [], "error": str(e)},
-            status=500
-        )
+    else:
+        return JsonResponse({"status": 400, "message": "Bad Request"})
+        
 
 # Create a `get_dealer_details` view to render the dealer details
 def get_dealer_details(request, dealer_id):
