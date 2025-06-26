@@ -100,7 +100,8 @@ def get_dealer_reviews(request, dealer_id):
         logger.info(f"GETTING DEALER REVIEWS - /fetchReviews/dealer/{dealer_id}")
         endpoint = f"/fetchReviews/dealer/{dealer_id}"
         reviews = get_request(endpoint)
-
+        logger.info(f"Fetched raw reviews: {reviews}")
+        
         if not reviews:
             logger.warning(f"No reviews found for dealer ID {dealer_id}")
             return JsonResponse({"status": 200, "reviews": []})
@@ -121,7 +122,7 @@ def get_dealer_reviews(request, dealer_id):
 
     else:
         return JsonResponse({"status": 400, "message": "Bad Request"})
-        
+
 
 # Create a `get_dealer_details` view to render the dealer details
 def get_dealer_details(request, dealer_id):
