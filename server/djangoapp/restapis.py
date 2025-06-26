@@ -2,9 +2,15 @@ import requests
 import os
 from dotenv import load_dotenv
 
+# This points to the .env file in the same folder as this script
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+
 load_dotenv()
 
 backend_url = os.getenv("backend_url")
+
+print("backend_url =", os.getenv("backend_url"))
+print("sentiment_analyzer_url =", os.getenv("sentiment_analyzer_url"))
 
 backend_url = os.getenv(
     'backend_url', default="http://localhost:3030")
@@ -48,7 +54,12 @@ def post_review(data_dict):
     request_url = backend_url + "/insert_review"
     try:
         response = requests.post(request_url, json=data_dict)
-        print(response.json())
-        return response.json()
-    except BaseException:
-        print("Network exception occurred")
+        if response.status_code == 200:
+            print("Review posted:", response.json())
+            return True
+        else:
+            print("Failed to post review:", response.status_code, response.text)
+            return False
+    except Exception as e:
+        print("Network exception occurred:", e)
+        return False

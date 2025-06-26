@@ -6,6 +6,7 @@ const app = express();
 const port = 3030;
 
 app.use(cors());
+app.use(express.json());
 app.use(require('body-parser').urlencoded({ extended: false }));
 
 const reviews_data = JSON.parse(fs.readFileSync("reviews.json", 'utf8'));
@@ -91,27 +92,28 @@ app.get('/fetchDealers', async (req, res) => {
   });
 
 //Express route to insert review
-app.post('/insert_review', express.raw({ type: '*/*' }), async (req, res) => {
-  let data = JSON.parse(req.body);
-
-  const review = new Reviews({
-    name: data.name,
-    dealership: data.dealership,
-    review: data.review,
-    purchase: data.purchase,
-    purchase_date: data.purchase_date,
-    car_make: data.car_make,
-    car_model: data.car_model,
-    car_year: data.car_year,
-});
-
-  try {
-    const savedReview = await review.save();
-    res.json(savedReview);
-  } catch (error) {
-	console.error('Error inserting review:', error);
-  }
-});
+app.post('/insert_review', express.json(), async (req, res) => {
+    const data = req.body;
+  
+    const review = new Reviews({
+      name: data.name,
+      dealership: data.dealership,
+      review: data.review,
+      purchase: data.purchase,
+      purchase_date: data.purchase_date,
+      car_make: data.car_make,
+      car_model: data.car_model,
+      car_year: data.car_year,
+    });
+  
+    try {
+      const savedReview = await review.save();
+      res.json(savedReview);
+    } catch (error) {
+      console.error('Error inserting review:', error);
+      res.status(500).json({ error: 'Failed to save review', message: error.message });
+    }
+  });
 
 // Start the Express server
 app.listen(port, () => {

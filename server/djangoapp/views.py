@@ -143,15 +143,18 @@ def get_dealer_details(request, dealer_id):
 
 # Create a `add_review` view to submit a review
 
-
+@csrf_exempt
 def add_review(request):
-    if (not request.user.is_anonymous):
+    if not request.user.is_anonymous:
         data = json.loads(request.body)
         try:
-            post_review(data)
-            return JsonResponse({"status": 200})
-        except BaseException:
-            return JsonResponse(
-                {"status": 401, "message": "Error in posting review"})
+            success = post_review(data)
+            if success:
+                return JsonResponse({"status": 200})
+            else:
+                return JsonResponse({"status": 500, "message": "Review failed to post"})
+        except Exception as e:
+            print("Exception in add_review:", e)
+            return JsonResponse({"status": 500, "message": "Server error"})
     else:
         return JsonResponse({"status": 403, "message": "Unauthorized"})
